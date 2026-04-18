@@ -23,7 +23,7 @@ function GameDetailPage() {
         <GameAttributes game={game} />
       </Box>
       <Box>
-        <GameTrailer gameId={game.id} />
+        <GameTramiler gameId={game.id} />
         <GameScreenshots gameId={game.id} />
       </Box>
     </SimpleGrid>

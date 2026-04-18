@@ -3,6 +3,7 @@ import ErrorPage from './pages/ErrorPage';
 import GameDetailPage from './pages/GameDetailPage';
 import HomePage from './pages/HomePage';
 import Layout from './pages/Layout';
+import ProfilePage from './pages/ProfilePage';
 
 const router = createBrowserRouter([
   {
@@ -14,6 +15,10 @@ const router = createBrowserRouter([
       {
         path: 'games/:slug',
         element: <GameDetailPage />,
+      },
+      {
+        path: 'profile/',
+        element: <ProfilePage />,
       },
     ],
   },
