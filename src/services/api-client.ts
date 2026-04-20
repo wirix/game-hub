@@ -1,10 +1,12 @@
-import axios, { AxiosRequestConfig } from "axios";
+import axios, { AxiosRequestConfig } from 'axios';
 
 export interface FetchResponse<T> {
   count: number;
   next: string | null;
   results: T[];
 }
+
+// RAWG API клиент (остается без изменений)
 const axiosInstance = axios.create({
   baseURL: 'https://api.rawg.io/api',
   params: {
@@ -19,15 +21,11 @@ class APIClient<T> {
   }
 
   getAll = (config: AxiosRequestConfig) => {
-    return axiosInstance
-      .get<FetchResponse<T>>(this.endpoint, config)
-      .then((res) => res.data);
+    return axiosInstance.get<FetchResponse<T>>(this.endpoint, config).then((res) => res.data);
   };
 
   get = (id: number | string) => {
-    return axiosInstance
-      .get<T>(this.endpoint + "/" + id)
-      .then((res) => res.data);
+    return axiosInstance.get<T>(this.endpoint + '/' + id).then((res) => res.data);
   };
 }
 

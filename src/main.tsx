@@ -7,6 +7,7 @@ import theme from './theme';
 import './index.css';
 import { RouterProvider } from 'react-router-dom';
 import router from './routes';
+import { AuthProvider } from './contexts/AuthContext'; // Добавьте импорт
 
 const queryClient = new QueryClient();
 
@@ -15,7 +16,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <ChakraProvider theme={theme}>
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <AuthProvider>
+          {' '}
+          {/* Добавьте AuthProvider здесь */}
+          <RouterProvider router={router} />
+        </AuthProvider>
         <ReactQueryDevtools />
       </QueryClientProvider>
     </ChakraProvider>
