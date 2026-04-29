@@ -8,9 +8,11 @@ const authApi = axios.create({
 });
 
 // Интерцептор для добавления токена
+// Добавьте лог для отладки
 authApi.interceptors.request.use(
 	(config) => {
 		const token = localStorage.getItem('token');
+		console.log('Token being sent:', token ? 'Present' : 'Missing');
 		if (token) {
 			config.headers.Authorization = `Bearer ${token}`;
 		}

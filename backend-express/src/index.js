@@ -19,6 +19,10 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 
+// Добавьте после других маршрутов
+const commentRoutes = require('./routes/comment.routes');
+app.use('/api/comments', commentRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 

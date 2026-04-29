@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -12,6 +13,19 @@ const verifyToken = (req, res, next) => {
 	try {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		req.userId = decoded.userId;
+
+		// Получаем данные пользователя для req.user
+		const user = await User.findById(req.userId);
+		if (user) {
+			req.user = {
+				id: user.id,
+				username: user.username,
+				avatar: user.avatar,
+				email: user.email,
+				fullName: user.fullName
+			};
+		}
+
 		next();
 	} catch (error) {
 		if (error.name === 'TokenExpiredError') {
