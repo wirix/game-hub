@@ -11,6 +11,8 @@ class Comment {
         user_id INTEGER NOT NULL,
         user_name VARCHAR(100) NOT NULL,
         user_avatar VARCHAR(500),
+        parent_id INTEGER DEFAULT NULL,
+        likes_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -19,18 +21,6 @@ class Comment {
 		try {
 			await pool.query(query);
 			console.log('Comments table created or already exists');
-
-			// Добавляем внешний ключ если его нет
-			try {
-				await pool.query(`
-          ALTER TABLE comments 
-          ADD CONSTRAINT fk_comments_user 
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        `);
-			} catch (err) {
-				// Foreign key already exists
-				console.log('Foreign key already exists or not needed');
-			}
 		} catch (err) {
 			console.error('Error creating comments table:', err);
 		}
@@ -38,18 +28,23 @@ class Comment {
 
 	// Создание комментария
 	static async create(commentData) {
-		const { content, game_slug, user_id, user_name, user_avatar } = commentData;
-
-		console.log('Creating comment with data:', { content, game_slug, user_id, user_name, user_avatar });
+		const { content, game_slug, user_id, user_name, user_avatar, parent_id } = commentData;
 
 		const query = `
-      INSERT INTO comments (content, game_slug, user_id, user_name, user_avatar)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO comments (content, game_slug, user_id, user_name, user_avatar, parent_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
 
-		const values = [content, game_slug, user_id, user_name, user_avatar];
+		const values = [content, game_slug, user_id, user_name, user_avatar, parent_id || null];
 		const result = await pool.query(query, values);
+		return result.rows[0];
+	}
+
+	// Получение комментария по ID
+	static async findById(id) {
+		const query = 'SELECT * FROM comments WHERE id = $1';
+		const result = await pool.query(query, [id]);
 		return result.rows[0];
 	}
 
@@ -89,6 +84,27 @@ class Comment {
 		const query = 'DELETE FROM comments WHERE id = $1 AND user_id = $2 RETURNING id';
 		const result = await pool.query(query, [id, user_id]);
 		return result.rowCount > 0;
+	}
+
+	// Добавьте эти методы в класс Comment
+
+	// Получение комментариев пользователя
+	static async findByUserId(user_id, limit = 20, offset = 0) {
+		const query = `
+    SELECT * FROM comments 
+    WHERE user_id = $1 
+    ORDER BY created_at DESC 
+    LIMIT $2 OFFSET $3
+  `;
+		const result = await pool.query(query, [user_id, limit, offset]);
+		return result.rows;
+	}
+
+	// Получение количества комментариев пользователя
+	static async getCountByUserId(user_id) {
+		const query = 'SELECT COUNT(*) as count FROM comments WHERE user_id = $1';
+		const result = await pool.query(query, [user_id]);
+		return parseInt(result.rows[0].count);
 	}
 }
 

@@ -43,7 +43,6 @@ const changePassword = async (req, res) => {
 	try {
 		const { currentPassword, newPassword } = req.body;
 
-		// Получаем пользователя с паролем
 		const query = 'SELECT password FROM users WHERE id = $1';
 		const result = await pool.query(query, [req.userId]);
 		const dbUser = result.rows[0];
@@ -90,10 +89,14 @@ const updateAvatar = async (req, res) => {
 			return res.status(400).json({ message: 'Файл не загружен' });
 		}
 
-		const avatarUrl = `/uploads/${req.file.filename}`;
-		await User.update(req.userId, { avatar: avatarUrl });
+		const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+		const updatedUser = await User.update(req.userId, { avatar: avatarUrl });
 
-		res.json({ message: 'Аватар обновлен', avatarUrl });
+		res.json({
+			message: 'Аватар обновлен',
+			avatarUrl,
+			user: updatedUser
+		});
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: 'Ошибка при обновлении аватара: ' + error.message });
@@ -105,5 +108,5 @@ module.exports = {
 	updateProfile,
 	changePassword,
 	deleteAccount,
-	updateAvatar
+	updateAvatar,
 };

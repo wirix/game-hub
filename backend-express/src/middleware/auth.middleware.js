@@ -14,7 +14,7 @@ const verifyToken = async (req, res, next) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		req.userId = decoded.userId;
 
-		// Получаем данные пользователя для req.user
+		// Получаем полные данные пользователя
 		const user = await User.findById(req.userId);
 		if (user) {
 			req.user = {
@@ -22,7 +22,10 @@ const verifyToken = async (req, res, next) => {
 				username: user.username,
 				avatar: user.avatar,
 				email: user.email,
-				fullName: user.fullName
+				fullName: user.fullName,
+				background_image: user.background_image,
+				level: user.level,
+				xp: user.xp
 			};
 		}
 

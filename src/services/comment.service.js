@@ -9,6 +9,22 @@ class CommentService {
 		return response.data;
 	}
 
+	// Получить комментарии текущего пользователя
+	async getMyComments(limit = 20, offset = 0) {
+		const response = await authApi.get('/comments/user/my-comments', {
+			params: { limit, offset }
+		});
+		return response.data;
+	}
+
+	// Получить обзоры текущего пользователя
+	async getMyReviews(limit = 10, offset = 0) {
+		const response = await authApi.get('/comments/user/my-reviews', {
+			params: { limit, offset }
+		});
+		return response.data;
+	}
+
 	// Создать комментарий
 	async createComment(content, game_slug) {
 		const response = await authApi.post('/comments', { content, game_slug });

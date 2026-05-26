@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: game-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: game_hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - game-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Бэкенд API
+  backend:
+    build: ./backend-express
+    container_name: game-hub-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 7000
+      JWT_SECRET: wregjytet
+      JWT_REFRESH_SECRET: wregjytet
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: game_hub
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      CLIENT_URL: http://localhost
+    ports:
+      - "7000:7000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - game-hub-network
+
+  # Фронтенд (Nginx)
+  frontend:
+    build: ./frontend
+    container_name: game-hub-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - game-hub-network
+
+networks:
+  game-hub-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_uploads:

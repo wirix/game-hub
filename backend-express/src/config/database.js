@@ -18,34 +18,4 @@ pool.connect((err, client, release) => {
 	}
 });
 
-// Создание таблиц
-const initDatabase = async () => {
-	const createUsersTable = `
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      "fullName" VARCHAR(255) NOT NULL,
-      username VARCHAR(100) UNIQUE NOT NULL,
-      avatar VARCHAR(500),
-      language VARCHAR(10) DEFAULT 'ru',
-      "isVerified" BOOLEAN DEFAULT FALSE,
-      "verificationToken" VARCHAR(255),
-      "resetPasswordToken" VARCHAR(255),
-      "resetPasswordExpires" BIGINT,
-      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
-	try {
-		await pool.query(createUsersTable);
-		console.log('Users table created or already exists');
-	} catch (err) {
-		console.error('Error creating users table:', err);
-	}
-};
-
-initDatabase();
-
 module.exports = pool;

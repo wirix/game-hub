@@ -2,9 +2,10 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const pool = require('../config/database');
 
 const generateToken = (userId) => {
-	return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+	return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 const register = async (req, res) => {

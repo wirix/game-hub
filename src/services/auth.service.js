@@ -6,6 +6,7 @@ class AuthService {
 		const response = await authApi.post('/auth/register', userData);
 		if (response.data.token) {
 			localStorage.setItem('token', response.data.token);
+			authApi.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
 		}
 		return response.data;
 	}
@@ -15,6 +16,7 @@ class AuthService {
 		const response = await authApi.post('/auth/login', { login, password });
 		if (response.data.token) {
 			localStorage.setItem('token', response.data.token);
+			authApi.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
 		}
 		return response.data;
 	}
@@ -71,9 +73,32 @@ class AuthService {
 		return response.data;
 	}
 
+	// Обновление фонового изображения профиля
+	async updateBackground(file) {
+		const formData = new FormData();
+		formData.append('background', file);
+		const response = await authApi.post('/user/background', formData, {
+			headers: { 'Content-Type': 'multipart/form-data' }
+		});
+		return response.data;
+	}
+
+	// Обновление фона через URL или градиент
+	async updateBackgroundFromUrl(backgroundData) {
+		const response = await authApi.post('/user/background', { background: backgroundData });
+		return response.data;
+	}
+
+	// Удаление фонового изображения
+	async removeBackground() {
+		const response = await authApi.delete('/user/background');
+		return response.data;
+	}
+
 	// Выход
 	logout() {
 		localStorage.removeItem('token');
+		delete authApi.defaults.headers.common['Authorization'];
 	}
 
 	// Проверка авторизации
@@ -84,6 +109,18 @@ class AuthService {
 	// Получение текущего токена
 	getToken() {
 		return localStorage.getItem('token');
+	}
+
+	// Получение информации об уровне пользователя
+	async getUserLevelInfo() {
+		const response = await authApi.get('/comments/user-level');
+		return response.data;
+	}
+
+	// Получение требований для уровней
+	async getLevelRequirements() {
+		const response = await authApi.get('/comments/level-requirements');
+		return response.data;
 	}
 }
 

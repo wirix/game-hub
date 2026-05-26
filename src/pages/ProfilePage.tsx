@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -12,14 +12,11 @@ import {
   Input,
   IconButton,
   SimpleGrid,
-  Grid,
-  GridItem,
   Badge,
   Divider,
   useColorModeValue,
   Card,
   CardBody,
-  CardHeader,
   Icon,
   Stat,
   StatLabel,
@@ -37,24 +34,24 @@ import {
   Tag,
   TagLabel,
   TagLeftIcon,
+  Tooltip,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
+  List,
+  ListItem,
+  ListIcon,
 } from '@chakra-ui/react';
-import {
-  EditIcon,
-  SettingsIcon,
-  BellIcon,
-  LockIcon,
-  EmailIcon,
-  CalendarIcon,
-  StarIcon,
-  InfoIcon,
-  ExternalLinkIcon,
-  AddIcon,
-  TimeIcon,
-} from '@chakra-ui/icons';
+import { EditIcon, CalendarIcon, StarIcon, QuestionIcon, TimeIcon } from '@chakra-ui/icons';
 import {
   FiMapPin,
-  FiBriefcase,
-  FiLogOut,
   FiCamera,
   FiThumbsUp,
   FiMessageCircle,
@@ -63,31 +60,100 @@ import {
   FiUsers,
   FiClock,
 } from 'react-icons/fi';
-import { FaSteam, FaTwitch, FaDiscord, FaPlaystation, FaXbox } from 'react-icons/fa';
+import { FaSteam, FaTwitch, FaDiscord, FaPlaystation } from 'react-icons/fa';
+import UserLevelInfo from '../components/UserLevelInfo';
+import { useAuth } from '../contexts/AuthContext';
+import authApi from '../services/authApi';
+import UserComments from '../components/UserComments';
+import UserReviews from '../components/UserReviews';
+import Wishlist from '../components/Wishlist';
+import ActivityCalendar from '../components/ActivityCalendar';
 
 const ProfilePage = () => {
+  const { user: authUser, updateProfile, updateAvatar } = useAuth();
+
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState({
-    name: 'Артур Пономаренко',
-    email: 'arthur.ponomarenko@example.com',
+    name: authUser?.fullName || 'Артур Пономаренко',
+    email: authUser?.email || 'arthur.ponomarenko@example.com',
     bio: '🎮 Заядлый геймер с 15-летним стажем. Специализируюсь на RPG, стратегиях и инди-играх. Пишу честные обзоры и делюсь впечатлениями о новинках игровой индустрии.',
     location: 'Санкт-Петербург, Россия',
-    favoriteGenres: 'RPG, Стратегии, Инди, Roguelike',
-    joinDate: 'Март 2023',
-    favoriteGames: 'The Witcher 3, Disco Elysium, Hades, Baldurs Gate 3',
+    joinDate: authUser?.createdAt
+      ? new Date(authUser.createdAt).toLocaleDateString('ru', { month: 'long', year: 'numeric' })
+      : 'Март 2023',
     avatar:
+      authUser?.avatar ||
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
     steamId: 'arthur_gamer',
     twitch: 'arthur_plays',
     discord: 'arthur#1234',
   });
 
+  const [userLevel, setUserLevel] = useState(authUser?.level || 1);
+  const [userXP, setUserXP] = useState(authUser?.xp || 0);
+  const [userStats, setUserStats] = useState({
+    totalComments: authUser?.total_comments || 0,
+    totalLikesReceived: authUser?.total_likes_received || 0,
+    totalLikesGiven: authUser?.total_likes_given || 0,
+    totalRepliesGiven: authUser?.total_replies_given || 0,
+  });
+
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // XP награды за действия
+  const xpRewards = [
+    { action: 'Написать комментарий', xp: '+10 XP', icon: FiMessageCircle, color: 'blue.500' },
+    { action: 'Получить лайк на комментарий', xp: '+5 XP', icon: FiThumbsUp, color: 'green.500' },
+    {
+      action: 'Ответить на чужой комментарий',
+      xp: '+8 XP',
+      icon: FiMessageCircle,
+      color: 'purple.500',
+    },
+    { action: 'Получить ответ на комментарий', xp: '+3 XP', icon: FiUsers, color: 'orange.500' },
+    {
+      action: 'Поставить лайк чужому комментарию',
+      xp: '+2 XP',
+      icon: StarIcon,
+      color: 'yellow.500',
+    },
+  ];
+
+  // Загрузка актуальных данных пользователя
+  useEffect(() => {
+    if (authUser) {
+      setUserData((prev) => ({
+        ...prev,
+        name: authUser.fullName || prev.name,
+        email: authUser.email || prev.email,
+        avatar: authUser.avatar || prev.avatar,
+      }));
+      setUserLevel(authUser.level || 1);
+      setUserXP(authUser.xp || 0);
+      setUserStats({
+        totalComments: authUser.total_comments || 0,
+        totalLikesReceived: authUser.total_likes_received || 0,
+        totalLikesGiven: authUser.total_likes_given || 0,
+        totalRepliesGiven: authUser.total_replies_given || 0,
+      });
+    }
+  }, [authUser]);
 
   const stats = [
     { label: 'Обзоров', value: '47', icon: FiMessageCircle, color: 'blue.500' },
-    { label: 'Комментариев', value: '1.2K', icon: FiThumbsUp, color: 'green.500' },
-    { label: 'Лайков', value: '3.4K', icon: StarIcon, color: 'yellow.500' },
+    {
+      label: 'Комментариев',
+      value: userStats.totalComments.toString(),
+      icon: FiThumbsUp,
+      color: 'green.500',
+    },
+    {
+      label: 'Лайков',
+      value: userStats.totalLikesReceived.toString(),
+      icon: StarIcon,
+      color: 'yellow.500',
+    },
     { label: 'Рейтинг', value: '4.9', icon: FiTrendingUp, color: 'purple.500' },
     { label: 'Достижений', value: '32', icon: FiAward, color: 'orange.500' },
     { label: 'Игр в библиотеке', value: '156', icon: FiTrendingUp, color: 'red.500' },
@@ -126,8 +192,7 @@ const ProfilePage = () => {
     { icon: FaDiscord, name: 'Discord', username: userData.discord, color: 'blue.500' },
   ];
 
-  const favoriteGenres = ['RPG', 'Стратегии', 'Инди', 'Roguelike', 'Action', 'Приключения'];
-  const favoriteGames = [
+  const favoriteGamesList = [
     'The Witcher 3',
     'Disco Elysium',
     'Hades',
@@ -135,6 +200,7 @@ const ProfilePage = () => {
     'Elden Ring',
     'Hollow Knight',
   ];
+
   const badges = [
     { name: 'Эксперт RPG', icon: FiAward, color: 'purple' },
     { name: '100+ обзоров', icon: StarIcon, color: 'gold' },
@@ -144,7 +210,6 @@ const ProfilePage = () => {
 
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBgColor = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'white');
   const secondaryTextColor = useColorModeValue('gray.600', 'gray.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
@@ -166,10 +231,44 @@ const ProfilePage = () => {
     return 'red';
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await updateAvatar(file);
+        toast({
+          title: 'Аватар обновлен',
+          status: 'success',
+          duration: 3000,
+        });
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить аватар',
+          status: 'error',
+          duration: 3000,
+        });
+      }
+    }
+  };
+
+  // Расчет XP для следующего уровня
+  const xpToNextLevel = Math.pow(userLevel, 2) * 100;
+  const xpForCurrentLevel = Math.pow(userLevel - 1, 2) * 100;
+  const xpProgress = ((userXP - xpForCurrentLevel) / (xpToNextLevel - xpForCurrentLevel)) * 100;
+  const xpNeeded = xpToNextLevel - userXP;
+
   return (
-    <Box minH="100vh" bg={bgColor} py={8} px={4}>
-      <Container maxW="container.xl">
-        {/* Основная карточка */}
+    <Box minH="100vh" bg={bgColor}>
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        accept="image/*"
+        onChange={handleAvatarChange}
+      />
+
+      <Container maxW="container.xl" py={8} px={4}>
         <Card borderRadius="2xl" overflow="hidden" boxShadow="xl" bg={cardBgColor}>
           {/* Верхний баннер с геймерским градиентом */}
           <Box
@@ -179,39 +278,87 @@ const ProfilePage = () => {
             backgroundImage="url('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200')"
             backgroundSize="cover"
             backgroundPosition="center">
+            <Box position="absolute" inset={0} bg="blackAlpha.600" />
+
+            {/* Уровень и XP */}
             <Box
               position="absolute"
-              inset={0}
-              bgGradient="linear(to-r, blackAlpha.800, blackAlpha.600)"
-            />
-            <IconButton
-              aria-label="Edit banner"
-              icon={<EditIcon />}
-              position="absolute"
-              top={4}
-              right={4}
-              size="sm"
-              variant="ghost"
-              color="white"
-              _hover={{ bg: 'whiteAlpha.300' }}
+              bottom={4}
+              left={4}
               zIndex={1}
-            />
-            <Flex
-              position="relative"
-              zIndex={1}
-              h="100%"
-              alignItems="center"
-              justifyContent="center">
-              <Badge
-                px={4}
-                py={2}
-                borderRadius="full"
-                fontSize="lg"
-                colorScheme="yellow"
-                variant="solid">
-                🎮 Игровой критик • Уровень 15 🎮
-              </Badge>
-            </Flex>
+              bg="blackAlpha.700"
+              p={3}
+              borderRadius="lg"
+              backdropFilter="blur(10px)">
+              <HStack spacing={4}>
+                <Popover>
+                  <PopoverTrigger>
+                    <Badge
+                      colorScheme="yellow"
+                      fontSize="md"
+                      p={2}
+                      borderRadius="full"
+                      cursor="pointer">
+                      <HStack>
+                        <StarIcon />
+                        <Text>Уровень {userLevel}</Text>
+                        <QuestionIcon boxSize={3} />
+                      </HStack>
+                    </Badge>
+                  </PopoverTrigger>
+                  <PopoverContent width="300px">
+                    <PopoverArrow />
+                    <PopoverCloseButton />
+                    <PopoverBody p={4}>
+                      <VStack align="start" spacing={3}>
+                        <Text fontWeight="bold" fontSize="md">
+                          🎯 Как получить следующий уровень?
+                        </Text>
+                        <Text fontSize="sm" color="gray.500">
+                          До уровня {userLevel + 1} осталось {xpNeeded} XP
+                        </Text>
+                        <Divider />
+                        <List spacing={2} width="100%">
+                          {xpRewards.map((reward, idx) => (
+                            <ListItem key={idx}>
+                              <HStack>
+                                <ListIcon as={reward.icon} color={reward.color} />
+                                <Text fontSize="sm" flex={1}>
+                                  {reward.action}
+                                </Text>
+                                <Badge colorScheme="green">{reward.xp}</Badge>
+                              </HStack>
+                            </ListItem>
+                          ))}
+                        </List>
+                      </VStack>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
+
+                <Box>
+                  <Text fontSize="xs" color="whiteAlpha.800">
+                    Прогресс до уровня {userLevel + 1}
+                  </Text>
+                  <HStack>
+                    <Progress
+                      value={xpProgress}
+                      size="sm"
+                      width="150px"
+                      colorScheme="yellow"
+                      borderRadius="full"
+                    />
+                    <Text fontSize="xs" color="whiteAlpha.800">
+                      {Math.floor(xpProgress)}%
+                    </Text>
+                  </HStack>
+                  <Text fontSize="xs" color="whiteAlpha.600" mt={1}>
+                    Осталось {xpNeeded} XP
+                  </Text>
+                </Box>
+                <UserLevelInfo />
+              </HStack>
+            </Box>
           </Box>
 
           <Box px={6} pb={8} position="relative">
@@ -220,10 +367,17 @@ const ProfilePage = () => {
               <Avatar
                 size="2xl"
                 name={userData.name}
-                src={userData.avatar}
+                src={
+                  userData.avatar?.startsWith('http')
+                    ? userData.avatar
+                    : `http://localhost:7000${userData.avatar}`
+                }
                 border="4px solid"
                 borderColor={cardBgColor}
-                boxShadow="xl">
+                boxShadow="xl"
+                cursor="pointer"
+                onClick={() => fileInputRef.current?.click()}
+                _hover={{ opacity: 0.8 }}>
                 <AvatarBadge
                   as={IconButton}
                   aria-label="Change avatar"
@@ -273,9 +427,6 @@ const ProfilePage = () => {
               </Text>
 
               <Flex gap={4} wrap="wrap" justify="center">
-                <HStack spacing={1} color={secondaryTextColor}>
-                  <Text fontSize="sm">Любимые жанры: {userData.favoriteGenres}</Text>
-                </HStack>
                 <HStack spacing={1} color={secondaryTextColor}>
                   <Icon as={FiMapPin} />
                   <Text fontSize="sm">{userData.location}</Text>
@@ -348,54 +499,35 @@ const ProfilePage = () => {
             {/* Tabs для контента */}
             <Tabs variant="soft-rounded" colorScheme="purple">
               <TabList mb={6} overflowX="auto" overflowY="hidden">
-                <Tab>📝 Последние обзоры</Tab>
+                <Tab>📝 Мои обзоры</Tab>
+                <Tab>💬 Мои комментарии</Tab>
+                <Tab>❤️ Желаемое</Tab> {/* Добавьте эту вкладку */}
                 <Tab>🎮 Любимые игры</Tab>
                 <Tab>🏆 Достижения</Tab>
                 <Tab>📊 Активность</Tab>
+                <Tab>📅 Календарь</Tab> {/* Добавьте эту вкладку */}
               </TabList>
 
               <TabPanels>
-                {/* Панель обзоров */}
+                {/* Панель с обзорами пользователя */}
                 <TabPanel px={0}>
-                  <VStack spacing={4} align="stretch">
-                    {recentReviews.map((review, idx) => (
-                      <Card key={idx} variant="outline" borderColor={borderColor} borderRadius="xl">
-                        <CardBody>
-                          <Flex justify="space-between" align="start" wrap="wrap" gap={3}>
-                            <VStack align="start" spacing={2} flex={1}>
-                              <Heading size="md">{review.game}</Heading>
-                              <Text color={secondaryTextColor}>{review.text}</Text>
-                              <HStack>
-                                <TimeIcon w={3} h={3} color={secondaryTextColor} />
-                                <Text fontSize="sm" color={secondaryTextColor}>
-                                  {review.date}
-                                </Text>
-                              </HStack>
-                            </VStack>
-                            <Box textAlign="center">
-                              <Badge
-                                colorScheme={getRatingColor(review.rating)}
-                                fontSize="lg"
-                                px={3}
-                                py={2}
-                                borderRadius="full">
-                                {review.rating}/10
-                              </Badge>
-                            </Box>
-                          </Flex>
-                        </CardBody>
-                      </Card>
-                    ))}
-                    <Button variant="ghost" colorScheme="purple" mt={2}>
-                      Смотреть все обзоры →
-                    </Button>
-                  </VStack>
+                  <UserReviews />
+                </TabPanel>
+
+                {/* Панель с комментариями пользователя */}
+                <TabPanel px={0}>
+                  <UserComments />
+                </TabPanel>
+
+                {/* Панель желаемого */}
+                <TabPanel px={0}>
+                  <Wishlist />
                 </TabPanel>
 
                 {/* Панель любимых игр */}
                 <TabPanel px={0}>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                    {favoriteGames.map((game, idx) => (
+                    {favoriteGamesList.map((game, idx) => (
                       <Card key={idx} variant="outline" borderColor={borderColor} borderRadius="xl">
                         <CardBody>
                           <HStack>
@@ -513,11 +645,11 @@ const ProfilePage = () => {
                             <Text color="green.500">↑ +33%</Text>
                           </Flex>
                           <Flex justify="space-between" w="100%">
-                            <Text>Комментариев: 127</Text>
+                            <Text>Комментариев: {userStats.totalComments}</Text>
                             <Text color="green.500">↑ +15%</Text>
                           </Flex>
                           <Flex justify="space-between" w="100%">
-                            <Text>Лайков: 892</Text>
+                            <Text>Лайков: {userStats.totalLikesReceived}</Text>
                             <Text color="green.500">↑ +47%</Text>
                           </Flex>
                         </VStack>
@@ -525,33 +657,14 @@ const ProfilePage = () => {
                     </Card>
                   </SimpleGrid>
                 </TabPanel>
+
+                {/* Панель календаря */}
+                <TabPanel px={0}>
+                  <ActivityCalendar />
+                </TabPanel>
               </TabPanels>
             </Tabs>
           </Box>
-        </Card>
-
-        {/* Секция с жанрами */}
-        <Card mt={8} borderRadius="xl" boxShadow="md" bg={cardBgColor}>
-          <CardBody>
-            <Heading size="md" mb={4}>
-              🎮 Любимые игровые жанры
-            </Heading>
-            <Wrap spacing={3}>
-              {favoriteGenres.map((genre, index) => (
-                <WrapItem key={index}>
-                  <Badge
-                    px={4}
-                    py={2}
-                    borderRadius="full"
-                    fontSize="md"
-                    colorScheme="purple"
-                    variant="subtle">
-                    🎯 {genre}
-                  </Badge>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </CardBody>
         </Card>
       </Container>
     </Box>

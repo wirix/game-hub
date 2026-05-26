@@ -7,12 +7,9 @@ const authApi = axios.create({
 	}
 });
 
-// Интерцептор для добавления токена
-// Добавьте лог для отладки
 authApi.interceptors.request.use(
 	(config) => {
 		const token = localStorage.getItem('token');
-		console.log('Token being sent:', token ? 'Present' : 'Missing');
 		if (token) {
 			config.headers.Authorization = `Bearer ${token}`;
 		}
@@ -23,15 +20,16 @@ authApi.interceptors.request.use(
 	}
 );
 
-// Интерцептор для обработки ошибок
 authApi.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		if (error.response?.status === 401) {
+		const ignoreLogoutUrls = ['/comments/user-level'];
+		const shouldIgnore = ignoreLogoutUrls.some(url => error.config?.url?.includes(url));
+
+		if (error.response?.status === 401 && !shouldIgnore) {
 			localStorage.removeItem('token');
 			delete authApi.defaults.headers.common['Authorization'];
-			// Не перенаправляем автоматически, чтобы избежать циклических перенаправлений
-			if (window.location.pathname !== '/login') {
+			if (!['/login', '/register'].includes(window.location.pathname)) {
 				window.location.href = '/login';
 			}
 		}

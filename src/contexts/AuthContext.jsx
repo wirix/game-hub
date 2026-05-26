@@ -19,9 +19,7 @@ export const AuthProvider = ({ children }) => {
 	// Функция регистрации
 	const register = async (userData) => {
 		try {
-			console.log('Register called with:', userData);
 			const response = await authApi.post('/auth/register', userData);
-			console.log('Register response:', response.data);
 			const { token, user } = response.data;
 
 			if (token) {
@@ -29,7 +27,13 @@ export const AuthProvider = ({ children }) => {
 				authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 			}
 
-			setUser(user);
+			setUser({
+				...user,
+				background_image: user.background_image || null,
+				favorite_genres: user.favorite_genres || [],
+				level: user.level || 1,
+				xp: user.xp || 0,
+			});
 			setLanguage(user.language || 'ru');
 			return user;
 		} catch (error) {
@@ -49,7 +53,13 @@ export const AuthProvider = ({ children }) => {
 				authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 			}
 
-			setUser(user);
+			setUser({
+				...user,
+				background_image: user.background_image || null,
+				favorite_genres: user.favorite_genres || [],
+				level: user.level || 1,
+				xp: user.xp || 0,
+			});
 			setLanguage(user.language || 'ru');
 			return user;
 		} catch (error) {
@@ -69,10 +79,14 @@ export const AuthProvider = ({ children }) => {
 	const updateProfile = async (profileData) => {
 		try {
 			const response = await authApi.put('/user/profile', profileData);
-			const { user } = response.data;
-			setUser(user);
+			const { user: updatedUser } = response.data;
+			setUser(prev => ({
+				...prev,
+				...updatedUser,
+				favorite_genres: updatedUser.favorite_genres || prev?.favorite_genres || [],
+			}));
 			if (profileData.language) setLanguage(profileData.language);
-			return user;
+			return updatedUser;
 		} catch (error) {
 			console.error('Update profile error:', error);
 			throw error;
@@ -108,10 +122,61 @@ export const AuthProvider = ({ children }) => {
 			const response = await authApi.post('/user/avatar', formData, {
 				headers: { 'Content-Type': 'multipart/form-data' }
 			});
-			setUser({ ...user, avatar: response.data.avatarUrl });
-			return response.data.avatarUrl;
+
+			// Обновляем пользователя с новым аватаром из ответа сервера
+			if (response.data.user) {
+				setUser(prev => ({ ...prev, avatar: response.data.user.avatar }));
+			} else if (response.data.avatarUrl) {
+				setUser(prev => ({ ...prev, avatar: response.data.avatarUrl }));
+			}
+
+			return response.data;
 		} catch (error) {
 			console.error('Update avatar error:', error);
+			throw error;
+		}
+	};
+
+	// Функция обновления фона
+	const updateBackground = async (backgroundData) => {
+		try {
+			let response;
+
+			if (typeof backgroundData === 'string') {
+				response = await authApi.post('/user/background', { background: backgroundData });
+			} else {
+				const formData = new FormData();
+				formData.append('background', backgroundData);
+				response = await authApi.post('/user/background', formData, {
+					headers: { 'Content-Type': 'multipart/form-data' }
+				});
+			}
+
+			// Обновляем пользователя с новым фоном из ответа сервера
+			if (response.data.user) {
+				setUser(prev => ({ ...prev, background_image: response.data.user.background_image }));
+			} else if (response.data.backgroundUrl) {
+				setUser(prev => ({ ...prev, background_image: response.data.backgroundUrl }));
+			}
+
+			return response.data;
+		} catch (error) {
+			console.error('Update background error:', error);
+			throw error;
+		}
+	};
+
+	// Функция удаления фона
+	const removeBackground = async () => {
+		try {
+			const response = await authApi.delete('/user/background');
+			if (response.data.user) {
+				setUser(prev => ({ ...prev, background_image: null }));
+			} else {
+				setUser(prev => ({ ...prev, background_image: null }));
+			}
+		} catch (error) {
+			console.error('Remove background error:', error);
 			throw error;
 		}
 	};
@@ -133,16 +198,26 @@ export const AuthProvider = ({ children }) => {
 	useEffect(() => {
 		const loadUser = async () => {
 			const token = localStorage.getItem('token');
+
 			if (token) {
 				try {
 					authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 					const response = await authApi.get('/user/profile');
-					setUser(response.data);
+
+					setUser({
+						...response.data,
+						background_image: response.data.background_image || null,
+						favorite_genres: response.data.favorite_genres || [],
+						level: response.data.level || 1,
+						xp: response.data.xp || 0,
+					});
 					setLanguage(response.data.language || 'ru');
 				} catch (error) {
 					console.error('Error loading user:', error);
-					localStorage.removeItem('token');
-					delete authApi.defaults.headers.common['Authorization'];
+					if (error.response?.status === 401) {
+						localStorage.removeItem('token');
+						delete authApi.defaults.headers.common['Authorization'];
+					}
 				}
 			}
 			setLoading(false);
@@ -162,6 +237,8 @@ export const AuthProvider = ({ children }) => {
 		changePassword,
 		deleteAccount,
 		updateAvatar,
+		updateBackground,
+		removeBackground,
 		verifyEmail,
 		setLanguage
 	};
